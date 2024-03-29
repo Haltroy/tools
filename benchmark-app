@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Specific executable name
+executable_name="$1"
+
+for directory in */; do
+  # Change directory to the current folder
+  cd "$directory" || continue
+
+  # Check if the executable exists
+  if [[ -f "$executable_name" ]]; then
+    # Initialize variables to store total and average time
+    total_time=0
+    average_time=0
+
+    for run in {1..10}; do
+      # Get the start time before running the executable
+      start_time=$(date +%s.%N)
+
+      # Run the executable and wait for it to finish
+      "./$executable_name" 2>&1 &  # "&" forks a background process
+
+      # Capture the process ID (PID) for tracking
+      process_id=$!
+
+      # Wait for the background process to finish
+      wait "$process_id"
+
+      # Get the end time after running the executable
+      end_time=$(date +%s.%N)
+
+      # Calculate elapsed time in seconds with nanosecond precision
+      elapsed_time=$(echo "$end_time - $start_time" | bc)
+
+      # Add current elapsed time to total time
+      total_time=$(echo "$total_time + $elapsed_time" | bc)
+    done
+
+    # Calculate average time
+    average_time=$(echo "scale=3; $total_time / 10" | bc)
+
+    # Print information about the directory, number of runs, and average time
+    echo "Directory: $directory"
+    echo "Number of runs: 10"
+    echo "Average time: $average_time seconds"
+    echo "---"
+  fi
+
+  # Move back to the parent directory
+  cd - >/dev/null || exit 1
+done
+
+echo "All directories processed."
